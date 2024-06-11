@@ -3,11 +3,15 @@ project(netcdf4Examples)
 
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(netCDF REQUIRED)
+#find_package(netCDF REQUIRED)
 find_package(MPI REQUIRED)
 
 add_executable(netcdf4Write netcdf4Write.cpp)
-target_link_libraries(netcdf4Write PRIVATE netCDF::netcdf) # should be netcdf here but need to look or netCDF
+target_link_libraries(netcdf4Write PRIVATE netcdf) # this way -lnetcdf flag will be added which is enough for legacy netCDF
 
 add_executable(mpiExample mpiExample.cpp)
 target_link_libraries(mpiExample PRIVATE MPI::MPI_CXX)
+
+add_executable(netcdf4Read netcdf4Read.cpp)
+target_link_libraries(netcdf4Read PRIVATE netcdf_c++4) # this way -lnetcdf_c++4 flag will be added
+# but then why would one need to find netCDF? to expose netCDF dir?
