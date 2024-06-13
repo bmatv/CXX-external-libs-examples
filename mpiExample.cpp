@@ -13,6 +13,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Hello from processor " << world_rank;
     std::cout << " out of " << world_size << " processors." << std::endl;
 
+    MPI_Barrier(MPI_COMM_WORLD); // without the barrier the "All proc.." line could appear anywhere in the output, this way it's guranteed to be last
     if(world_rank == 0) {
         std::cout << "All processors reached the barrier. Proceeding..." << std::endl;
     }
