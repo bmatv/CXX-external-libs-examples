@@ -1,3 +1,7 @@
+# clion
 cmake-build-debug
 .idea
+
+# vscode
+.vscode
 build
