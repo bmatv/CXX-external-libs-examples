@@ -15,7 +15,7 @@ int main(){
 
     netCDF::NcVar tomodata = dataFile.getVar("data");
 
-    int data_out[6][4];
+    int data_out[6][12];
     // short tomoIn[10];
     tomodata.getVar(data_out);
 
