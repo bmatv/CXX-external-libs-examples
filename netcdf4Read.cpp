@@ -6,39 +6,28 @@
 
 int main(){
     /* This will be the netCDF ID for the file and data variable. */
-    int ncid, varid,dimid;
 
-//    int data_in[NX][NY];
-//    std::string filepath;
-//    std::cin >> filepath;
-//    std::cout << filepath << '\n';
-//    auto fp = "dfsdfsdf";
+    // auto filepath = "/home/bogdan/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/tomoSliceZ-2__RMG.nc";
+    auto filepath = "simple_xy.nc";
 
-    // Open the file and check to make sure it's valid.
-
-    auto filepath = "/home/bogdan/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/tomoSliceZ-2__RMG.nc";
 
     netCDF::NcFile dataFile(filepath, netCDF::NcFile::read);
 
-    // There are a number of inquiry functions in netCDF which can be
-    // used to learn about an unknown netCDF file. In this case we know
-    // that there are 2 netCDF dimensions, 4 netCDF variables, no
-    // global attributes, and no unlimited dimension.
+    netCDF::NcVar tomodata = dataFile.getVar("data");
 
-    std::cout<<"there are "<<dataFile.getVarCount()<<" variables"<<std::endl;
-    std::cout<<"there are "<<dataFile.getAttCount()<<" attributes"<<std::endl;
-    std::cout<<"there are "<<dataFile.getDimCount()<<" dimensions"<<std::endl;
-    std::cout<<"there are "<<dataFile.getGroupCount()<<" groups"<<std::endl;
-    std::cout<<"there are "<<dataFile.getTypeCount()<<" types"<<std::endl;
+    int data_out[6][4];
+    // short tomoIn[10];
+    tomodata.getVar(data_out);
 
-    auto dims = dataFile.getDims();
+    for (int x = 0; x < 6; x++)
+    {
+        for (int y = 0; y < 12; y++)
+        {
+            std::cout<< data_out[x][y]<<' ';
+            }
 
-    for(auto& entry:dims){
-        std::cout <<"second.getName() = "<< entry.second.getName() <<" first = "<< entry.first <<" second.getSize() "<<entry.second.getSize() <<'\n';
-    }
+        std::cout <<'\n';
+        }
 
-    auto attrs = dataFile.getAtts();
-    for(auto& [attrName,attrNcGroupAtt]:attrs){
-        std::cout<<attrName<<" " <<attrNcGroupAtt.getName()<<'\n';
-    }
+
 }
