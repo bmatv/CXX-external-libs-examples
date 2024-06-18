@@ -103,4 +103,8 @@ int main()
     }
     std::cout << '\n';}
 
+
+    //TODO filter the edges, potentially with a hard cutoff
+
+    //TODO run hough transform for the edges left (non-zero) 
 }
