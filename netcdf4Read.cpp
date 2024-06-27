@@ -20,8 +20,8 @@ int main()
 
     std::cout << "there are " << tomodata.getDimCount() << " dimensions in the tomo dataset\n";
 
-    const unsigned int row_size = 2722;
-    const unsigned int col_size = 2722;
+    const int row_size = 2722;
+    const int col_size = 2722;
 
     const std::vector<size_t> &start{0, 0, 0};           // 3*4, 12 bytes
     const std::vector<size_t> &count{1, row_size, col_size}; // 12 bytes
@@ -168,27 +168,58 @@ int main()
 
 
 
-    const double centreboxbounds = 1.0/10.0;
-    long long iSearchSize = iStd*centreboxbounds;
-    long long jSearchSize = jStd*centreboxbounds;
+    // const double searchBoxBoundsSTDCoef = 1.0/100.0;
+    // long long iSearchSize = iStd*searchBoxBoundsSTDCoef;
+    // long long jSearchSize = jStd*searchBoxBoundsSTDCoef;
+    long long iSearchSize = 64; // has to be even otherwise not all values will be accesible
+    long long jSearchSize = 64;
+    int halfDiagLen = pow(pow(iSearchSize,2) + pow(jSearchSize,2),0.5);
 
-    std::vector<uint64_t>searchBox(iSearchSize* jSearchSize,0);
+    std::vector<uint64_t>searchBox(iSearchSize*jSearchSize,0);
 
-    std::cout << "centre search box coordinates (i): " << iAvg - iSearchSize/2 << " to " << iAvg + iSearchSize/2 <<'\n';
-    std::cout << "centre search box coordinates (j): " << jAvg - jSearchSize/2 << " to " << jAvg + jSearchSize/2 <<'\n';
+    std::cout << "centre search box coordinates (i): " << iAvg - iSearchSize/2 << " to " << iAvg + iSearchSize/2 << "\niSearchSize (Window) = " << iSearchSize <<'\n';
+    std::cout << "centre search box coordinates (j): " << jAvg - jSearchSize/2 << " to " << jAvg + jSearchSize/2 << "\njSearchSize (Window) = " << jSearchSize <<'\n';
+
+    // int radius_min = 1200, radius_max = 1205;
+    int radius = 1192;
+
+
 
     for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i) // for every pixel of the tomogram
     for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
         if (edges_arr[i*row_size+j]!=0){ // real edge, compute distance from every centre point
 
-            for(uint64_t iCentre = iAvg - iSearchSize/2; iCentre < iAvg +iSearchSize/2;i++) 
-            for(uint64_t jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;i++){
-                // consider a radius of 1200
-                searchBox[iCentre-iAvg]
-                    
+            //check if the edge is not within 0.5 (0.7?) std from the avg centre
+
+
+            int distanceToAvgCentre = pow(pow(i - iAvg,2) + pow(j - jAvg,2),0.5);
+            // for radius in radii should be here
+
+            if (distanceToAvgCentre < 0.5*(iStd)) // needs to be distance
+                continue;
+
+            if ((distanceToAvgCentre-halfDiagLen) <= radius && (distanceToAvgCentre+halfDiagLen) >= radius){ // the edge could theoretically be part of the circle with the centre in the search box so we can continue
+                for(auto iCentre = iAvg - iSearchSize/2; iCentre < iAvg +iSearchSize/2;iCentre++) 
+                for(auto jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;jCentre++){
+
+                    auto sideA = pow(i - iCentre,2);
+                    auto sideB = pow(j - jCentre,2);
+
+                    int distance = (int) pow( sideA + sideB,0.5);
+                    long long indexI = 0;
+                    long long indexJ = 0;
+                    if(distance == radius){
+                        indexI = iCentre-iAvg+ iSearchSize/2;
+                        indexJ = jCentre-jAvg + jSearchSize/2;
+                        searchBox.at(indexI * jSearchSize + indexJ ) += 1; // searchBox[0]  // may be too much write accesses, could be better to revise the loop so a tmp var could be formed
+                    }
 
 
                 }
+
+            }
+
+            //     }
 
         }
 
@@ -198,11 +229,12 @@ int main()
     // for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
     
     
-    // for (int i=380;i<410;++i){
-    // for (int j=380;j<410;++j){
-    //     std::cout << edges_arr[i*row_size + j] <<' ';
-    // }
-    // std::cout << '\n';}
+    for(auto i = 0; i < iSearchSize;i++){
+    for(auto j = 0; j < jSearchSize;j++){
+        std::cout << searchBox.at(i*jSearchSize + j) <<' ';
+    }
+    std::cout << '\n';
+    }
 
 
     // write out the resultant netcdf after sobel filtering?
