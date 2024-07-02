@@ -2,6 +2,8 @@
 // Created by bogdan on 11/06/24.
 //
 #include <iostream>
+#include <fstream>
+
 #include <netcdf>
 #include <cmath>
 #include <cstdint>
@@ -208,18 +210,18 @@ int main()
                     for(auto jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;++jCentre){
 
                         int distance = static_cast<int>(std::sqrt( std::pow(static_cast<float>(i - iCentre),2) + std::pow(static_cast<float>(j - jCentre),2)));
-                    long long indexI = 0;
-                    long long indexJ = 0;
+                        long long indexI = 0;
+                        long long indexJ = 0;
                         if(distance == radii[rIdx]){
                             indexI = iCentre-iAvg + iSearchSize/2;
-                        indexJ = jCentre-jAvg + jSearchSize/2;
+                            indexJ = jCentre-jAvg + jSearchSize/2;
                             searchBox.at(rIdx*(iSearchSize*jSearchSize) + indexI * jSearchSize + indexJ ) += 1; // searchBox[0]  // may be too much write accesses, could be better to revise the loop so a tmp var could be formed
+                        }
+
+
                     }
 
-
                 }
-
-            }
 
             }
 
@@ -229,15 +231,20 @@ int main()
 
     // for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i)
     // for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
-    
-    
-    for(auto i = 0; i < iSearchSize;i++){
-    for(auto j = 0; j < jSearchSize;j++){
-        std::cout << searchBox.at(i*jSearchSize + j) <<' ';
-    }
-    std::cout << '\n';
-    }
 
+    std::ofstream myfile;
+    myfile.open ("example.txt");
+    
+    std::cout << "Outputting the accumulator\n\n";
+    for (size_t rIdx =0; rIdx<radii.size();rIdx++) {
+        for(auto i = 0; i < iSearchSize;i++){
+        for(auto j = 0; j < jSearchSize;j++){
+            myfile << searchBox[(rIdx*(iSearchSize*jSearchSize) + i*jSearchSize + j)] <<' ';
+        }
+        myfile << '\n';
+    }
+    }
+    myfile.close();
 
     // write out the resultant netcdf after sobel filtering?
 
