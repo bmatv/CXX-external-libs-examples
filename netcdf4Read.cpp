@@ -57,7 +57,7 @@ int main()
     std::vector<uint16_t> smooth_arr(row_size * col_size,0);
     // uint16_t smooth_arr[row_size-filter_offset*2][col_size-filter_offset*2] {};
 
-    // smoothing via averaging box
+    // smoothing via averaging box, might want to make smooth float, so sobel could be faster?
     for (int i = 0 + filter_offset; i < row_size - filter_offset; ++i)
         for (int j = 0 + filter_offset; j < col_size - filter_offset; ++j)
         {
@@ -68,7 +68,7 @@ int main()
                     tmp += arr[(i + x) * row_size + j + y];
                 }
             // std::cout << tmp / (avg_filter_size * avg_filter_size) << ' ';
-            smooth_arr[i*row_size+j] = tmp / (avg_filter_size * avg_filter_size);
+            smooth_arr[i*row_size+j] = tmp / (avg_filter_size * avg_filter_size); // int math here might be slow
         }
 
     for (int i=500;i<510;++i){
@@ -79,7 +79,7 @@ int main()
 
     // sobel filter
     std::cout << "---Sobel---\n";
-    std::vector<double> edges_arr(row_size * col_size,0);
+    std::vector<float> edges_arr(row_size * col_size,0);
     // overflows if int16
     double maxSobel = 0;
     uint64_t countNonZero = 0;
@@ -88,15 +88,17 @@ int main()
 
     for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i){
     for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
-        auto gx = (smooth_arr[(i+1)*row_size + j-1] + 2*smooth_arr[i*row_size + j-1] + smooth_arr[(i-1)*row_size + j-1]
-                +
-                -smooth_arr[(i+1)*row_size + j+1] + -2*smooth_arr[i*row_size+j+1] + -smooth_arr[(i-1)*row_size+j+1]);
+        float gx = static_cast<float>(
+            smooth_arr[(i + 1) * row_size + j - 1] + 2 * smooth_arr[i * row_size + j - 1] +
+            smooth_arr[(i - 1) * row_size + j - 1] + -smooth_arr[(i + 1) * row_size + j + 1] +
+            -2 * smooth_arr[i * row_size + j + 1] + -smooth_arr[(i - 1) * row_size + j + 1]);
 
-        auto gy = (smooth_arr[(i-1)*row_size+j+1] + 2*smooth_arr[(i-1)*row_size+j] + smooth_arr[(i-1)*row_size+j-1]
-                +
-                -smooth_arr[(i+1)*row_size+j+1] + -2*smooth_arr[(i+1)*row_size+j] + -smooth_arr[(i+1)*row_size+j-1]);
+        float gy = static_cast<float>(
+            smooth_arr[(i - 1) * row_size + j + 1] + 2 * smooth_arr[(i - 1) * row_size + j] +
+            smooth_arr[(i - 1) * row_size + j - 1] + -smooth_arr[(i + 1) * row_size + j + 1] +
+            -2 * smooth_arr[(i + 1) * row_size + j] + -smooth_arr[(i + 1) * row_size + j - 1]);
 
-        auto sobelVal = pow( (gx*gx + gy*gy),0.5);
+        auto sobelVal = std::sqrt(gx*gx + gy*gy);
 
         // edges_arr[(i)*row_size+j] = sobelVal<15000?sobelVal:0; // then we could ignore the mask but need to check whether the value is Nan in case of float tomo
 
@@ -122,10 +124,10 @@ int main()
     std::cout << "Zero values count: " << (row_size * col_size) - countNonZero << '\n';
     std::cout << "Average value: " << nonZeroSum/countNonZero << '\n';
 
-    auto meanSobelVal = nonZeroSum/countNonZero;
-    auto meanSumSquared = nonZeroSquaredSum/countNonZero;
+    auto meanSobelVal = static_cast<float>(nonZeroSum/countNonZero);
+    auto meanSumSquared = static_cast<float>(nonZeroSquaredSum/countNonZero);
 
-    auto stdSobel = pow(meanSumSquared - meanSobelVal*meanSobelVal,0.5); // approx std. good enough
+    auto stdSobel = std::sqrt(static_cast<float>(meanSumSquared - meanSobelVal*meanSobelVal)); // approx std. good enough
 
     std::cout << "STD value: " << stdSobel << '\n' << "Filter bounds:" << meanSobelVal-stdSobel << " to " << meanSobelVal+stdSobel << '\n';
 
@@ -134,8 +136,8 @@ int main()
     long long filteredSobelCount = 0;
     long long iAvg {};
     long long jAvg {};
-    long long iStd {};
-    long long jStd {};
+    long long iStdAcc {};
+    long long jStdAcc {};
 
     // compute average edge i and j, and respective standard deviations. Those will be our center coordinate and search box dimensions.
 
@@ -149,15 +151,15 @@ int main()
             filteredSobelCount++;
             iAvg+=i;
             jAvg+=j;
-            iStd+=i*i;
-            jStd+=j*j;
+            iStdAcc+=i*i;
+            jStdAcc+=j*j;
             }
     }
 
     iAvg = iAvg/filteredSobelCount;
     jAvg = jAvg/filteredSobelCount;
-    iStd = pow(iStd/filteredSobelCount - iAvg,0.5);
-    jStd = pow(jStd/filteredSobelCount - jAvg,0.5);
+    float iStd = std::sqrt(static_cast<float>(iStdAcc/filteredSobelCount - iAvg)); // could be a new float var?
+    float jStd = std::sqrt(static_cast<float>(jStdAcc/filteredSobelCount - jAvg));
     std::cout << "Zero values count after filtering: " <<filteredSobelCount <<'\n';
     std::cout << "Average i = " << iAvg <<"\nSTD i = "<< iStd <<'\n';
     std::cout << "Average j = " << jAvg <<"\nSTD j = "<< jStd <<'\n';
@@ -171,17 +173,21 @@ int main()
     // const double searchBoxBoundsSTDCoef = 1.0/100.0;
     // long long iSearchSize = iStd*searchBoxBoundsSTDCoef;
     // long long jSearchSize = jStd*searchBoxBoundsSTDCoef;
-    long long iSearchSize = 64; // has to be even otherwise not all values will be accesible
-    long long jSearchSize = 64;
-    int halfDiagLen = pow(pow(iSearchSize,2) + pow(jSearchSize,2),0.5);
-
-    std::vector<uint64_t>searchBox(iSearchSize*jSearchSize,0);
+    long long iSearchSize = 256; // has to be even otherwise not all values will be accesible
+    long long jSearchSize = 256;
+    float halfDiagLen = std::sqrt(static_cast<float>(iSearchSize*iSearchSize + jSearchSize*jSearchSize));
+    std::vector<int>radii {1205,1206,1207,1208,1209}; //1195,1200,1205,1210,1215,1220
+    std::vector<uint64_t>searchBox(iSearchSize*jSearchSize*radii.size(),0);
 
     std::cout << "centre search box coordinates (i): " << iAvg - iSearchSize/2 << " to " << iAvg + iSearchSize/2 << "\niSearchSize (Window) = " << iSearchSize <<'\n';
     std::cout << "centre search box coordinates (j): " << jAvg - jSearchSize/2 << " to " << jAvg + jSearchSize/2 << "\njSearchSize (Window) = " << jSearchSize <<'\n';
 
     // int radius_min = 1200, radius_max = 1205;
-    int radius = 1192;
+    // int radius = 1192;
+
+    // int radii[] = {1192,1193,1194};
+    
+    
 
 
 
@@ -189,29 +195,25 @@ int main()
     for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
         if (edges_arr[i*row_size+j]!=0){ // real edge, compute distance from every centre point
 
-            //check if the edge is not within 0.5 (0.7?) std from the avg centre
+            // check if the edge is not within 0.5 (0.7?) std from the avg centre
 
-
-            int distanceToAvgCentre = pow(pow(i - iAvg,2) + pow(j - jAvg,2),0.5);
+            float distanceToAvgCentre = std::sqrt(std::pow(static_cast<float>(i - iAvg), 2.0F) + std::pow(static_cast<float>(j - jAvg), 2.0F));
             // for radius in radii should be here
 
-            if (distanceToAvgCentre < 0.5*(iStd)) // needs to be distance
+            if (distanceToAvgCentre < iStd/2.0F) // iStd is ~= radius hence 0.5iStd is a half of that which is where we do not expect the edges of the cyllinder to be
                 continue;
+            for (size_t rIdx =0; rIdx<radii.size();rIdx++){
+                if (static_cast<int>(distanceToAvgCentre-halfDiagLen) <= radii[rIdx] && static_cast<int>(distanceToAvgCentre+halfDiagLen) >= radii[rIdx]){ // the edge could theoretically be part of the circle with the centre in the search box so we can continue
+                    for(auto iCentre = iAvg - iSearchSize/2; iCentre < iAvg +iSearchSize/2;++iCentre) 
+                    for(auto jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;++jCentre){
 
-            if ((distanceToAvgCentre-halfDiagLen) <= radius && (distanceToAvgCentre+halfDiagLen) >= radius){ // the edge could theoretically be part of the circle with the centre in the search box so we can continue
-                for(auto iCentre = iAvg - iSearchSize/2; iCentre < iAvg +iSearchSize/2;iCentre++) 
-                for(auto jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;jCentre++){
-
-                    auto sideA = pow(i - iCentre,2);
-                    auto sideB = pow(j - jCentre,2);
-
-                    int distance = (int) pow( sideA + sideB,0.5);
+                        int distance = static_cast<int>(std::sqrt( std::pow(static_cast<float>(i - iCentre),2) + std::pow(static_cast<float>(j - jCentre),2)));
                     long long indexI = 0;
                     long long indexJ = 0;
-                    if(distance == radius){
-                        indexI = iCentre-iAvg+ iSearchSize/2;
+                        if(distance == radii[rIdx]){
+                            indexI = iCentre-iAvg + iSearchSize/2;
                         indexJ = jCentre-jAvg + jSearchSize/2;
-                        searchBox.at(indexI * jSearchSize + indexJ ) += 1; // searchBox[0]  // may be too much write accesses, could be better to revise the loop so a tmp var could be formed
+                            searchBox.at(rIdx*(iSearchSize*jSearchSize) + indexI * jSearchSize + indexJ ) += 1; // searchBox[0]  // may be too much write accesses, could be better to revise the loop so a tmp var could be formed
                     }
 
 
@@ -219,7 +221,7 @@ int main()
 
             }
 
-            //     }
+            }
 
         }
 
