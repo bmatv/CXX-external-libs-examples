@@ -90,12 +90,12 @@ int main()
 
     for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i){
     for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
-        float gx = static_cast<float>(
+        auto gx = static_cast<float>(
             smooth_arr[(i + 1) * row_size + j - 1] + 2 * smooth_arr[i * row_size + j - 1] +
             smooth_arr[(i - 1) * row_size + j - 1] + -smooth_arr[(i + 1) * row_size + j + 1] +
             -2 * smooth_arr[i * row_size + j + 1] + -smooth_arr[(i - 1) * row_size + j + 1]);
 
-        float gy = static_cast<float>(
+        auto gy = static_cast<float>(
             smooth_arr[(i - 1) * row_size + j + 1] + 2 * smooth_arr[(i - 1) * row_size + j] +
             smooth_arr[(i - 1) * row_size + j - 1] + -smooth_arr[(i + 1) * row_size + j + 1] +
             -2 * smooth_arr[(i + 1) * row_size + j] + -smooth_arr[(i + 1) * row_size + j - 1]);
@@ -188,49 +188,51 @@ int main()
     // int radius = 1192;
 
     // int radii[] = {1192,1193,1194};
-    
-    
+    // for every pixel of the tomogram
+    for (int i = filter_offset + 1; i < row_size - (filter_offset + 1); ++i)
+        for (int j = filter_offset + 1; j < col_size - (filter_offset + 1); ++j) {
+            // real edge, compute distance from every centre point
 
+            if (edges_arr[i * row_size + j] != 0) {
+                // check if the edge is not within 0.5 (0.7?) std from the avg centre
 
+                float distanceToAvgCentre = std::sqrt(std::pow(static_cast<float>(i - iAvg), 2.0F) +
+                                                      std::pow(static_cast<float>(j - jAvg), 2.0F));
+                // for radius in radii should be here
+                // iStd is ~= radius hence 0.5iStd is a half of that which is where
+                // we do not expect the edges of the cyllinder to be
+                if (distanceToAvgCentre < iStd / 2.0F)
+                    continue;
+                for (size_t rIdx = 0; rIdx < radii.size(); rIdx++) {
+                    if (static_cast<int>(distanceToAvgCentre - halfDiagLen) <= radii[rIdx] &&
+                        static_cast<int>(distanceToAvgCentre + halfDiagLen) >= radii[rIdx]) {
+                        // the edge could theoretically be part of the circle
+                        // with the centre in the search box so we can continue
+                        for (auto iCentre = iAvg - iSearchSize / 2;
+                             iCentre < iAvg + iSearchSize / 2; ++iCentre)
+                            for (auto jCentre = jAvg - jSearchSize / 2;
+                                 jCentre < jAvg + jSearchSize / 2; ++jCentre) {
 
-    for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i) // for every pixel of the tomogram
-    for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
-        if (edges_arr[i*row_size+j]!=0){ // real edge, compute distance from every centre point
-
-            // check if the edge is not within 0.5 (0.7?) std from the avg centre
-
-            float distanceToAvgCentre = std::sqrt(std::pow(static_cast<float>(i - iAvg), 2.0F) + std::pow(static_cast<float>(j - jAvg), 2.0F));
-            // for radius in radii should be here
-
-            if (distanceToAvgCentre < iStd/2.0F) // iStd is ~= radius hence 0.5iStd is a half of that which is where we do not expect the edges of the cyllinder to be
-                continue;
-            for (size_t rIdx =0; rIdx<radii.size();rIdx++){
-                if (static_cast<int>(distanceToAvgCentre-halfDiagLen) <= radii[rIdx] && static_cast<int>(distanceToAvgCentre+halfDiagLen) >= radii[rIdx]){ // the edge could theoretically be part of the circle with the centre in the search box so we can continue
-                    for(auto iCentre = iAvg - iSearchSize/2; iCentre < iAvg +iSearchSize/2;++iCentre) 
-                    for(auto jCentre = jAvg - jSearchSize/2; jCentre < jAvg + jSearchSize/2;++jCentre){
-
-                        int distance = static_cast<int>(std::sqrt( std::pow(static_cast<float>(i - iCentre),2) + std::pow(static_cast<float>(j - jCentre),2)));
-                        long long indexI = 0;
-                        long long indexJ = 0;
-                        if(distance == radii[rIdx]){
-                            indexI = iCentre-iAvg + iSearchSize/2;
-                            indexJ = jCentre-jAvg + jSearchSize/2;
-                            searchBox.at(rIdx*(iSearchSize*jSearchSize) + indexI * jSearchSize + indexJ ) += 1; // searchBox[0]  // may be too much write accesses, could be better to revise the loop so a tmp var could be formed
-                        }
-
-
+                                int distance = static_cast<int>(
+                                    std::sqrt(std::pow(static_cast<float>(i - iCentre), 2) +
+                                              std::pow(static_cast<float>(j - jCentre), 2)));
+                                long long indexI = 0;
+                                long long indexJ = 0;
+                                if (distance == radii[rIdx]) {
+                                    indexI = iCentre - iAvg + iSearchSize / 2;
+                                    indexJ = jCentre - jAvg + jSearchSize / 2;
+                                    searchBox.at(rIdx * (iSearchSize * jSearchSize) +
+                                                 indexI * jSearchSize + indexJ) +=
+                                        1; // searchBox[0]  // may be too much write accesses, could
+                                           // be better to revise the loop so a tmp var could be
+                                           // formed
+                                }
+                            }
                     }
-
                 }
-
             }
-
         }
 
-    }
-
-    // for (int i=filter_offset+1;i<row_size-(filter_offset+1);++i)
-    // for (int j=filter_offset+1;j<col_size-(filter_offset+1);++j){
 
     std::ofstream myfile;
     myfile.open ("example.txt");
