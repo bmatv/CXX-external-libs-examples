@@ -34,6 +34,10 @@ int main()
     // e.g. uint8_t data[8377999] {}; might pass and might throw a Segmentation fault
 
     tomodata.getVar(start, count, arr.data()); // the data is in, it's a 2D array
+    //writing mask value as it is missing in the file
+    for(auto& val:arr){
+        val = val!=0?val:static_cast<uint16_t>(65535); 
+    }
 
     for (int i = 500; i < 510; ++i)
     {
