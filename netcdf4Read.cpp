@@ -238,6 +238,18 @@ int main()
         }
 
 
+    // find the maximum pixel value
+    size_t idxMax = 0;
+    size_t valMax = 0;
+    for(size_t i=1+iSearchSize;i<searchBox.size()-iSearchSize;++i){
+        auto crossSum = searchBox.at(i-iSearchSize) + searchBox.at(i-1) + searchBox.at(i) + searchBox.at(i+1) + searchBox.at(i+iSearchSize);
+        if (valMax < crossSum){
+            valMax = crossSum;
+            idxMax = i;
+        }
+    }
+    std::cout << "MaxVal: " << valMax << "; MaxValIdx: " << idxMax <<'\n';
+
     std::ofstream myfile;
     myfile.open ("example.txt");
     
