@@ -242,11 +242,12 @@ int main()
                                  jCentre < jAvg + jSearchSize / 2; ++jCentre) {
 
                                 int distance = static_cast<int>(
-                                    std::sqrt(std::pow(static_cast<float>(i - iCentre), 2) +
-                                              std::pow(static_cast<float>(j - jCentre), 2)));
+                                    std::round(std::sqrt(std::pow(static_cast<float>(i - iCentre), 2.0F) +
+                                              std::pow(static_cast<float>(j - jCentre), 2.0F))));
                                 long long indexI = 0;
                                 long long indexJ = 0;
-                                if (distance == radii[rIdx]) {
+                                int32_t edgeStd = 2;
+                                if (distance >= (radii[rIdx]-edgeStd) && distance <= (radii[rIdx]+edgeStd)) {
                                     indexI = iCentre - iAvg + iSearchSize / 2;
                                     indexJ = jCentre - jAvg + jSearchSize / 2;
                                     searchBox.at(rIdx * (iSearchSize * jSearchSize) +
