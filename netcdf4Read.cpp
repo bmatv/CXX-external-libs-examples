@@ -15,15 +15,15 @@ int main()
     /* This will be the netCDF ID for the file and data variable. */
 
     // auto filepath = "/home/bogdanm/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/tomoSliceZ-2__RMG.nc"; // inner: 1208, outer: 1271(?)
-    // auto filepath = "/home/bogdanm/data/containerSamples/RSES_Wood_Teeth_123_8mm/tomoSliceZ-7__R.nc"; // inner: 1097
+    auto filepath = "/home/bogdan/data/containerSamples/RSES_Wood_Teeth_123_8mm/tomoSliceZ-7__R.nc"; // inner: 1097
     // auto filepath = "/home/bogdanm/data/containerSamples/Whiting_5640_5mm_031114_preserved/tomoSliceZ-13__R.nc"; // inner: 1088
-    auto filepath = "/home/bogdanm/data/containerSamples/Whiting_5640_5mm_031114_Xe_dec/tomoSliceZ-12__R.nc";
+    // auto filepath = "/home/bogdan/data/containerSamples/Whiting_5640_5mm_031114_Xe_dec/tomoSliceZ-12__R.nc";
     // std::vector<int>radii {1215,1216,1217,1218,1219,1267,1268,1269,1270,1271,1272,1273}; //1195,1200,1205,1210,1215,1220
     // std::vector<int>radii {1207,1208,1209,};
 
-    // std::vector<int>radii {1096,1097,1098,1099,1100,1101,1102};
+    std::vector<int>radii {1097};
 
-    std::vector<int>radii {868,869,870,};
+    // std::vector<int>radii {868,869,870,};
 
 
 
@@ -160,7 +160,6 @@ int main()
 
     std::cout << "STD value: " << stdSobel << '\n' << "Filter bounds:" << meanSobelVal-stdSobel << " to " << meanSobelVal+stdSobel << '\n';
 
-
     //TODO filter the edges, potentially with a hard cutoff
     long long filteredSobelCount = 0;
     long long iAvg {};
@@ -195,6 +194,62 @@ int main()
             imax = i>imax?i:imax;
             }
     }
+
+
+        //-----------------------------------------------------------------
+    // doing subgrid filtering, let's make 20x20 window a standard
+    // edges_arr is an input
+
+    // row_size
+    size_t gridSide = 20;
+    size_t threshold = 100;
+    std::cout << "Additional Filtering\n\n\n "<< row_size/gridSide << ' ' << col_size/gridSide << ' ' <<'\n';
+    for(size_t i=0;i<row_size;i+=gridSide)
+        for(size_t j=0;j<col_size;j+=gridSide){
+            // i0j0 i0j1 i0j2 i0j3
+            size_t zerosCount = 0;
+            for(size_t k=0;k<gridSide;k++)
+            for(size_t l=0;l<gridSide;l++){
+                auto idx = (i+k)*row_size+j + l;
+                
+                if(edges_arr[idx]!= 0){
+                    zerosCount ++;
+                }
+                
+            }
+            if (zerosCount >= threshold){
+                // std::cout << "Erasing!"<< ' ';
+                for(size_t k=0;k<gridSide;k++)
+                for(size_t l=0;l<gridSide;l++){
+                    edges_arr.at(i*row_size+j + k*row_size + l) = 0;
+                }
+            }
+
+        }
+
+    // need to filter again!
+
+    std::ofstream myedges;
+    myedges.open ("output_edges.txt");
+    
+    std::cout << "Outputting the edges\n\n";
+        for(size_t i = 0; i < row_size;i++){
+        for(size_t j = 0; j < col_size;j++){
+            myedges << edges_arr[i*row_size+j] <<' ';
+        }
+        myedges << '\n';
+    }
+    myedges.close();
+
+//  0 .. 20 .. 40 ..... rowsize//20
+// .
+// .
+// 20
+// .
+// .
+// colsize//20
+    //-----------------------------------------------------------------
+
 
 
 
