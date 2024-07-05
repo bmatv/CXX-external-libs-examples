@@ -30,7 +30,7 @@ int main() {
   // {1215,1216,1217,1218,1219,1267,1268,1269,1270,1271,1272,1273};
   // //1195,1200,1205,1210,1215,1220 std::vector<int>radii {1207,1208,1209,};
 
-  std::vector<int> radii{1097};
+  std::vector<int> radii{1092,1093,1094,1095,1096,1097,1098,1099};
 
   // std::vector<int>radii {868,869,870,};
 
@@ -60,8 +60,13 @@ int main() {
     val = val != 0 ? val : static_cast<uint16_t>(65535);
   }
 
+  for (int i=0;i<10;++i){
+  for (int j=0;j<10;++j){
+      std::cout << arr[i*row_size + j] <<' ';}
+  std::cout << '\n';}
+
   std::cout << "---Average---\n";
-  const int32_t filterSide = 3;
+  const int32_t filterSide = 5;
   std::vector<uint16_t> smooth_arr(row_size * col_size, 0);
   // smoothAvg(arr, smooth_arr, row_size, col_size, avg_filter_size);
   smoothAvg(arr, smooth_arr, row_size, col_size, filterSide);
@@ -75,8 +80,10 @@ int main() {
   double nonZeroSum = 0;
   double nonZeroSquaredSum = 0;
 
-  for (size_t i = 1; i < row_size - 1; ++i) {
-    for (size_t j = 1; j < col_size - 1; ++j) {
+  // TODO why is the filterSide offset so important? Why does it produce so much noise if not applied?
+  // Needs additional testing
+  for (size_t i = 1+filterSide/2; i < row_size - (filterSide/2+1); ++i) {
+    for (size_t j = 1+filterSide/2; j < col_size - (filterSide/2+1); ++j) {
       auto gx = static_cast<float>(smooth_arr[(i + 1) * row_size + j - 1] +
                                    2 * smooth_arr[i * row_size + j - 1] +
                                    smooth_arr[(i - 1) * row_size + j - 1] +
@@ -91,21 +98,22 @@ int main() {
                                    -2 * smooth_arr[(i + 1) * row_size + j] +
                                    -smooth_arr[(i + 1) * row_size + j - 1]);
 
-      edges_arr[i * row_size + j] = std::sqrt(gx * gx + gy * gy);
-
-
-      }
-    }
-
-    for(auto& val:edges_arr){
-      if(val!=0){
+      auto sobelVal = std::sqrt(gx * gx + gy * gy);
+      // sobelVal = sobelVal < 50000.0F? sobelVal: 0;
+      if (sobelVal != 0 && sobelVal < 50000.0F){ // the cutoff should be here, otherwise penetrates into mean and std values
+        edges_arr[i * row_size + j] = sobelVal;
         countNonZero++;
-        nonZeroSum += val;
-        nonZeroSquaredSum += val * val;
+        nonZeroSum += sobelVal;
+        nonZeroSquaredSum += sobelVal * sobelVal;
+      }
+      // then we could ignore the mask but need to check
+                          // whether the value is Nan in case of float tomo
+
+
       }
     }
-  
 
+ 
 
       //   sobelVal = sobelVal < 50000.0F
       //                ? sobelVal
@@ -118,18 +126,18 @@ int main() {
       //   nonZeroSquaredSum += sobelVal * sobelVal;
       //   edges_arr[i * row_size + j] = sobelVal;
 
-    for (int i=0;i<10;++i){
-    for (int j=0;j<10;++j){
+    for (int i=390;i<400;++i){
+    for (int j=390;j<400;++j){
         std::cout << edges_arr[i*row_size + j] <<' ';}
     std::cout << '\n';}
 
     std::cout << "Maximum sobel value = " << maxSobel << '\n';
     std::cout << "NonZero values count: " << countNonZero << '\n';
     std::cout << "Zero values count: " << (row_size * col_size) - countNonZero << '\n';
-    std::cout << "Average value: " << nonZeroSum/countNonZero << '\n';
+    std::cout << "Average value: " << nonZeroSum/static_cast<double>(countNonZero) << '\n';
 
-    auto meanVal = static_cast<float>(nonZeroSum/countNonZero);
-    auto meanSumSquared = static_cast<float>(nonZeroSquaredSum/countNonZero);
+    auto meanVal = static_cast<float>(nonZeroSum/static_cast<double>(countNonZero));
+    auto meanSumSquared = static_cast<float>(nonZeroSquaredSum/static_cast<double>(countNonZero));
 
     auto stdVal = std::sqrt(static_cast<float>(meanSumSquared - meanVal*meanVal)); // approx std. good enough
 
@@ -230,8 +238,8 @@ int main() {
     // const double searchBoxBoundsSTDCoef = 1.0/100.0;
     // long long iSearchSize = iStd*searchBoxBoundsSTDCoef;
     // long long jSearchSize = jStd*searchBoxBoundsSTDCoef;
-    long long iSearchSize = 128; // has to be even otherwise not all values will be accesible
-    long long jSearchSize = 128;
+    long long iSearchSize = 64; // has to be even otherwise not all values will be accesible
+    long long jSearchSize = 64;
     float halfDiagLen = std::sqrt(static_cast<float>(iSearchSize*iSearchSize + jSearchSize*jSearchSize));
 
     std::vector<uint64_t>searchBox(iSearchSize*jSearchSize*radii.size(),0);
@@ -270,7 +278,7 @@ int main() {
                                               std::pow(static_cast<float>(j - jCentre), 2.0F))));
                                 long long indexI = 0;
                                 long long indexJ = 0;
-                                int32_t edgeStd = 2;
+                                int32_t edgeStd = 1; // 1 works best, 2 is already sensitive to container content
                                 if (distance >= (radii[rIdx]-edgeStd) && distance <= (radii[rIdx]+edgeStd)) {
                                     indexI = iCentre - iAvg + iSearchSize / 2;
                                     indexJ = jCentre - jAvg + jSearchSize / 2;
@@ -349,7 +357,7 @@ auto filterEdgesGrid(std::vector<float> &edges_arr, uint32_t row_size,
       size_t nonZeroValsCountGrid = 0;
       float nonZeroSumGrid = 0.0F, nonZeroSquaredSumGrid = 0.0F;
 
-      for (size_t k = 0; k < gridSide; k++)
+      for (size_t k = 0; k < gridSide; k++) {
         for (size_t l = 0; l < gridSide; l++) {
           auto idx = (i + k) * row_size + j + l;
 
@@ -359,10 +367,12 @@ auto filterEdgesGrid(std::vector<float> &edges_arr, uint32_t row_size,
             nonZeroSquaredSumGrid += edges_arr[idx] * edges_arr[idx];
           }
         }
+      }
+
       if (nonZeroValsCountGrid >= threshold) {
         for (size_t k = 0; k < gridSide; k++)
           for (size_t l = 0; l < gridSide; l++) {
-            edges_arr.at(i * row_size + j + k * row_size + l) = 0;
+            edges_arr.at((i + k) * row_size + j + l) = 0;
           }
       } else {
         // accumulating values for mean and std estimation
@@ -372,13 +382,11 @@ auto filterEdgesGrid(std::vector<float> &edges_arr, uint32_t row_size,
       }
     }
 
-  auto meanVal =
-      static_cast<float>(nonZeroSum / static_cast<double>(nonZeroValsCount));
-  auto meanSumSquared = static_cast<float>(
-      nonZeroSquaredSum / static_cast<double>(nonZeroValsCount));
+  auto meanVal = (nonZeroSum / static_cast<double>(nonZeroValsCount));
+  auto meanSumSquared = (nonZeroSquaredSum / static_cast<double>(nonZeroValsCount));
 
-  float stdVal =
-      std::sqrt(meanSumSquared - meanVal * meanVal); // approx std. good enough
+  auto stdVal =
+      static_cast<float>(std::sqrt(meanSumSquared - meanVal * meanVal)); // approx std. good enough
   return {meanVal, stdVal};
 }
 
