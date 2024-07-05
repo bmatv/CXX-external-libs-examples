@@ -15,9 +15,9 @@ int main()
     /* This will be the netCDF ID for the file and data variable. */
 
     // auto filepath = "/home/bogdanm/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/tomoSliceZ-2__RMG.nc"; // inner: 1208, outer: 1271(?)
-    auto filepath = "/home/bogdan/data/containerSamples/RSES_Wood_Teeth_123_8mm/tomoSliceZ-7__R.nc"; // inner: 1097
+    auto filepath = "/home/bogdanm/data/containerSamples/RSES_Wood_Teeth_123_8mm/tomoSliceZ-7__R.nc"; // inner: 1097
     // auto filepath = "/home/bogdanm/data/containerSamples/Whiting_5640_5mm_031114_preserved/tomoSliceZ-13__R.nc"; // inner: 1088
-    // auto filepath = "/home/bogdan/data/containerSamples/Whiting_5640_5mm_031114_Xe_dec/tomoSliceZ-12__R.nc";
+    // auto filepath = "/home/bogdanm/data/containerSamples/Whiting_5640_5mm_031114_Xe_dec/tomoSliceZ-12__R.nc";
     // std::vector<int>radii {1215,1216,1217,1218,1219,1267,1268,1269,1270,1271,1272,1273}; //1195,1200,1205,1210,1215,1220
     // std::vector<int>radii {1207,1208,1209,};
 
@@ -153,12 +153,12 @@ int main()
     std::cout << "Zero values count: " << (row_size * col_size) - countNonZero << '\n';
     std::cout << "Average value: " << nonZeroSum/countNonZero << '\n';
 
-    auto meanSobelVal = static_cast<float>(nonZeroSum/countNonZero);
+    auto meanVal = static_cast<float>(nonZeroSum/countNonZero);
     auto meanSumSquared = static_cast<float>(nonZeroSquaredSum/countNonZero);
 
-    auto stdSobel = std::sqrt(static_cast<float>(meanSumSquared - meanSobelVal*meanSobelVal)); // approx std. good enough
+    auto stdVal = std::sqrt(static_cast<float>(meanSumSquared - meanVal*meanVal)); // approx std. good enough
 
-    std::cout << "STD value: " << stdSobel << '\n' << "Filter bounds:" << meanSobelVal-stdSobel << " to " << meanSobelVal+stdSobel << '\n';
+    std::cout << "STD value: " << stdVal << '\n' << "Filter bounds:" << meanVal-stdVal << " to " << meanVal+stdVal << '\n';
 
     //TODO filter the edges, potentially with a hard cutoff
     long long filteredSobelCount = 0;
@@ -177,7 +177,7 @@ int main()
 
     for (size_t i=filter_offset+1;i<row_size-(filter_offset+1);++i)
     for (size_t j=filter_offset+1;j<col_size-(filter_offset+1);++j){
-        if (edges_arr[i*row_size+j]>(meanSobelVal+stdSobel) || edges_arr[i*row_size+j] < meanSobelVal){
+        if (edges_arr[i*row_size+j]>(meanVal+stdVal) || edges_arr[i*row_size+j] < meanVal){
                 edges_arr[i*row_size+j] = 0;
         }
         else { // edge found
@@ -203,31 +203,61 @@ int main()
     // row_size
     size_t gridSide = 20;
     size_t threshold = 100;
+    size_t nonZeroValsCount = 0;
+    nonZeroSum = 0.0; // already defined above
+    nonZeroSquaredSum = 0.0; // already defined above
+
     std::cout << "Additional Filtering\n\n\n "<< row_size/gridSide << ' ' << col_size/gridSide << ' ' <<'\n';
     for(size_t i=0;i<row_size;i+=gridSide)
         for(size_t j=0;j<col_size;j+=gridSide){
-            // i0j0 i0j1 i0j2 i0j3
-            size_t zerosCount = 0;
+
+            size_t nonZeroValsCountGrid = 0;
+            float nonZeroSumGrid = 0.0F;
+            float nonZeroSquaredSumGrid = 0.0F;
+
             for(size_t k=0;k<gridSide;k++)
             for(size_t l=0;l<gridSide;l++){
                 auto idx = (i+k)*row_size+j + l;
                 
                 if(edges_arr[idx]!= 0){
-                    zerosCount ++;
+                    nonZeroValsCountGrid ++;
+                    nonZeroSumGrid+=edges_arr[idx];
+                    nonZeroSquaredSumGrid+=edges_arr[idx]*edges_arr[idx];
                 }
                 
             }
-            if (zerosCount >= threshold){
-                // std::cout << "Erasing!"<< ' ';
+            if (nonZeroValsCountGrid >= threshold){
                 for(size_t k=0;k<gridSide;k++)
                 for(size_t l=0;l<gridSide;l++){
                     edges_arr.at(i*row_size+j + k*row_size + l) = 0;
                 }
+            }else{
+                nonZeroValsCount += nonZeroValsCountGrid;
+                nonZeroSum+=nonZeroSumGrid;
+                nonZeroSquaredSum+=nonZeroSquaredSumGrid;
             }
 
         }
+    std::cout << "2. NonZero values count: " << nonZeroValsCount << '\n';
+    std::cout << "2. Zero values count: " << (row_size * col_size) - nonZeroValsCount << '\n';
+    std::cout << "2. Average value: " << nonZeroSum/static_cast<double>(nonZeroValsCount) << '\n';
 
-    // need to filter again!
+    meanVal = static_cast<float>(nonZeroSum/nonZeroValsCount);
+    meanSumSquared = static_cast<float>(nonZeroSquaredSum/nonZeroValsCount);
+
+    stdVal = std::sqrt(static_cast<float>(meanSumSquared - meanVal*meanVal)); // approx std. good enough
+
+    std::cout << "2. STD value: " << stdVal << '\n' << "Filter bounds:" << meanVal-stdVal << " to " << meanVal+stdVal << '\n';
+
+    for(auto& val:edges_arr){
+        val = (val<(meanVal) || val>(meanVal+stdVal))?0:val;
+    }
+        //     if (edges_arr[i*row_size+j]>(meanVal+stdVal) || edges_arr[i*row_size+j] < meanVal){
+        //         edges_arr[i*row_size+j] = 0;
+        // }
+
+
+    // need to filter again! but before filtering, one needs mean and std
 
     std::ofstream myedges;
     myedges.open ("output_edges.txt");
