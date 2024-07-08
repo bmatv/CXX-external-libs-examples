@@ -354,8 +354,8 @@ auto filterEdgesGrid(std::vector<float> &edges_arr, uint32_t row_size,
 
   size_t nonZeroValsCount = 0;
   double nonZeroSum = 0.0, nonZeroSquaredSum = 0.0;
-  for (size_t i = 0; i < row_size; i += gridSide)
-    for (size_t j = 0; j < col_size; j += gridSide) {
+  for (size_t i = 0; i < row_size-gridSide; i += gridSide)
+    for (size_t j = 0; j < col_size-gridSide; j += gridSide) {
 
       size_t nonZeroValsCountGrid = 0;
       float nonZeroSumGrid = 0.0F, nonZeroSquaredSumGrid = 0.0F;
