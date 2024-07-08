@@ -19,3 +19,5 @@ target_link_libraries(mpiExample PRIVATE MPI::MPI_CXX)
 add_executable(netcdf4Read netcdf4Read.cpp)
 target_link_libraries(netcdf4Read PRIVATE netcdf_c++4) # this way -lnetcdf_c++4 flag will be added
 # but then why would one need to find netCDF? to expose netCDF dir?
+
+add_executable(testVec vec_test.cpp)
