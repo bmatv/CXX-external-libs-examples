@@ -46,8 +46,8 @@ std::vector<uint64_t> edgesAccumulate(std::vector<float>& edges_arr, size_t row_
                         for (auto iCentre = 0; iCentre < iSearchSize / scaleCoeff; ++iCentre)
                             for (auto jCentre = 0; jCentre < jSearchSize / scaleCoeff; ++jCentre) {
 
-                                long long indexI = iCentreApprox - iSearchSize/2 + iCentre + scaleCoeff/2;
-                                long long indexJ = jCentreApprox - jSearchSize/2 + jCentre + scaleCoeff/2;
+                                long long indexI = iCentreApprox - iSearchSize/2 + iCentre*scaleCoeff + scaleCoeff/2;
+                                long long indexJ = jCentreApprox - jSearchSize/2 + jCentre*scaleCoeff + scaleCoeff/2;
 
                                 auto distance = (
                                     std::sqrt(std::pow(static_cast<float>(i - indexI), 2.0F) +
@@ -70,7 +70,7 @@ int main() {
   /* This will be the netCDF ID for the file and data variable. */
 
   auto filepath =
-      "/home/bogdanm/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/"
+      "/home/bogdan/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/"
       "tomoSliceZ-2__RMG.nc"; // inner: 1208, outer: 1271(?)
   // std::vector<float> radii{1215, 1216, 1217, 1218, 1219, 1267,
   //                        1268, 1269, 1270, 1271, 1272, 1273};
@@ -313,10 +313,10 @@ int main() {
   // const double searchBoxBoundsSTDCoef = 1.0/100.0;
   // long long iSearchSize = iStd*searchBoxBoundsSTDCoef;
   // long long jSearchSize = jStd*searchBoxBoundsSTDCoef;
-  long long iSearchSize = 64; // has to be even otherwise not all values will be accesible
-  long long jSearchSize = 64;
+  long long iSearchSize = 128; // has to be even otherwise not all values will be accesible
+  long long jSearchSize = 128;
   auto distThreshold = stdVal/2.0F;
-  long long scaleCoeff = 1;
+  long long scaleCoeff = 2;
 
   std::cout << "scaleCoeff = " << scaleCoeff <<'\n';
 
