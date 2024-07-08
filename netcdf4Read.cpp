@@ -67,7 +67,7 @@ int main() {
 
   std::cout << "---Average---\n";
   const int32_t filterSide = 5;
-  std::vector<uint16_t> smooth_arr(row_size * col_size, 0);
+  std::vector<uint16_t> smooth_arr(row_size * col_size, 65535); // let's make it all mask so sobel doesn't break
   // smoothAvg(arr, smooth_arr, row_size, col_size, avg_filter_size);
   smoothAvg(arr, smooth_arr, row_size, col_size, filterSide);
 
@@ -80,10 +80,13 @@ int main() {
   double nonZeroSum = 0;
   double nonZeroSquaredSum = 0;
 
-  // TODO why is the filterSide offset so important? Why does it produce so much noise if not applied?
-  // Needs additional testing
-  for (size_t i = 1+filterSide/2; i < row_size - (filterSide/2+1); ++i) {
-    for (size_t j = 1+filterSide/2; j < col_size - (filterSide/2+1); ++j) {
+  /* the issue with noisy filtered sobel if the edges were included in the
+  compututation was related to the zeros right on the edges polluting the std
+  and mean values. If the averaged array values are filled with mask value
+  and there is no sharp edge on each side - everything is back to normal
+  again. */
+  for (size_t i = 1; i < row_size-1 ; ++i) {
+    for (size_t j = 1; j < col_size-1; ++j) {
       auto gx = static_cast<float>(smooth_arr[(i + 1) * row_size + j - 1] +
                                    2 * smooth_arr[i * row_size + j - 1] +
                                    smooth_arr[(i - 1) * row_size + j - 1] +
