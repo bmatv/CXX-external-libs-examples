@@ -15,56 +15,6 @@
 #include <tuple>
 #include <vector>
 
-std::vector<uint64_t> edgesAccumulate(std::vector<float>& edges_arr, size_t row_size,
-                                      size_t col_size, std::vector<float>& radii, long long iCentreApprox,
-                                      long long jCentreApprox, float distThreshold, long long iSearchSize,
-                                      long long jSearchSize, long long scaleCoeff) {
-    std::cout << "Radii assessed:\n";
-    for(auto& rad:radii){
-      std::cout << rad <<' ';
-    }
-    std::cout << '\n';
-
-    std::vector<uint64_t> searchBox(iSearchSize/scaleCoeff * jSearchSize/scaleCoeff *radii.size(), 0);
-
-    float halfDiagLen = std::sqrt(static_cast<float>(iSearchSize * iSearchSize +
-                                                   jSearchSize * jSearchSize)); // diagonal length of the searchbox
-
-    for (int i = 0; i < static_cast<int>(row_size); ++i)
-        for (int j = 0; j < static_cast<int>(col_size); ++j) {
-            if (edges_arr[i * row_size + j] != 0) {
-                // check if the edge is not within 0.5 (0.7?) std from the avg centre
-                float distanceToAvgCentre = std::sqrt(std::pow(static_cast<float>(i - iCentreApprox), 2.0F) +
-                                                      std::pow(static_cast<float>(j - jCentreApprox), 2.0F));
-                if (distanceToAvgCentre < distThreshold) // too close, skipping
-                    continue;
-                for (size_t rIdx = 0; rIdx < radii.size(); rIdx++) {
-                    if ((distanceToAvgCentre - halfDiagLen) <= radii[rIdx] &&
-                        (distanceToAvgCentre + halfDiagLen) >= radii[rIdx]) {
-                        // the edge could theoretically be part of the circle
-                        // with the centre in the search box so we can continue
-                        for (auto iCentre = 0; iCentre < iSearchSize / scaleCoeff; ++iCentre)
-                            for (auto jCentre = 0; jCentre < jSearchSize / scaleCoeff; ++jCentre) {
-
-                                long long indexI = iCentreApprox - iSearchSize/2 + iCentre*scaleCoeff + scaleCoeff/2;
-                                long long indexJ = jCentreApprox - jSearchSize/2 + jCentre*scaleCoeff + scaleCoeff/2;
-
-                                auto distance = (
-                                    std::sqrt(std::pow(static_cast<float>(i - indexI), 2.0F) +
-                                              std::pow(static_cast<float>(j - indexJ), 2.0F)));
-
-                                if (distance >= (radii[rIdx] - static_cast<float>(scaleCoeff/2) - 1.0F) &&
-                                    distance <= (radii[rIdx] + static_cast<float>(scaleCoeff/2) + 1.0F)) {
-                                    searchBox.at(rIdx * (iSearchSize/scaleCoeff * jSearchSize/scaleCoeff) +
-                                                 iCentre * iSearchSize/scaleCoeff + jCentre) += 1;
-                                }
-                            }
-                    }
-                }
-            }
-        }
-    return searchBox;
-}
 
 int main() {
   /* This will be the netCDF ID for the file and data variable. */
@@ -74,7 +24,7 @@ int main() {
       "tomoSliceZ-2__RMG.nc"; // inner: 1208, outer: 1271(?)
   // std::vector<float> radii{1215, 1216, 1217, 1218, 1219, 1267,
   //                        1268, 1269, 1270, 1271, 1272, 1273};
-    std::vector<float> radii{1207,1208,1209};
+    std::vector<float> radii{1208,1209,1210,1211,1212};
 
   // auto filepath =
   // "/home/bogdanm/data/containerSamples/RSES_Wood_Teeth_123_8mm/"
@@ -316,7 +266,7 @@ int main() {
   long long iSearchSize = 128; // has to be even otherwise not all values will be accesible
   long long jSearchSize = 128;
   auto distThreshold = stdVal/2.0F;
-  long long scaleCoeff = 2;
+  long long scaleCoeff = 4;
 
   std::cout << "scaleCoeff = " << scaleCoeff <<'\n';
 
@@ -342,39 +292,9 @@ int main() {
   std::cout << "xAbs: " << jAbs
             << "; yAbs: " << iAbs << '\n';
 
-
-  // iSearchSize = 128;
-  // jSearchSize = 128;
-  // scaleCoeff = 1;
-  // radii = std::vector<float>{radii.at(radiusFoundIdx)-0.5F,radii.at(radiusFoundIdx),radii.at(radiusFoundIdx)+0.5F};
-  // searchBox = edgesAccumulate(edges_arr, row_size, col_size, radii, iAbs, jAbs, distThreshold,
-  //                                  iSearchSize, jSearchSize, scaleCoeff);
-
-
-  // b = std::max_element(searchBox.begin(), searchBox.end());
-  // valMax = *b;
-  // idxMax = std::distance(searchBox.begin(), b);
-  // radiusFoundIdx = idxMax / (iSearchSize / scaleCoeff * iSearchSize / scaleCoeff);
-  // iIdx =
-  //     (idxMax % (iSearchSize / scaleCoeff * iSearchSize / scaleCoeff)) / (iSearchSize / scaleCoeff);
-  // jIdx = idxMax % (iSearchSize / scaleCoeff);
-
-  // jAbs = jAbs - jSearchSize / 2 + jIdx * scaleCoeff;
-  // iAbs = iAbs - iSearchSize / 2 + iIdx * scaleCoeff;
-
-  // std::cout << "MaxVal: " << valMax << "; MaxValIdx: " << idxMax << '\n';
-  // std::cout << "Radius: "
-  //           << radii.at(radiusFoundIdx)
-  //           << "; iIdx: " << iIdx << "; jIdx: " << jIdx << '\n';
-  // // get the actual coordinates
-  // std::cout << "xAbs: " << jAbs
-  //           << "; yAbs: " << iAbs << '\n';
-
-
-
   std::ofstream myfile;
   myfile.open("example.txt");
-  std::cout << "Outputting the accumulator\n\n";
+  std::cout << "Outputting the accumulator (Iteration I)\n\n";
   for (size_t rIdx = 0; rIdx < radii.size(); rIdx++) {
     for (auto i = 0; i < iSearchSize/scaleCoeff; i++) {
       for (auto j = 0; j < jSearchSize/scaleCoeff; j++) {
@@ -386,6 +306,51 @@ int main() {
     }
   }
   myfile.close();
+
+
+  iSearchSize = 32;
+  jSearchSize = 32;
+  scaleCoeff = 1;
+  radii = std::vector<float>{radii.at(radiusFoundIdx)-0.5F,radii.at(radiusFoundIdx)-0.25F,radii.at(radiusFoundIdx),radii.at(radiusFoundIdx)+0.25F,radii.at(radiusFoundIdx)+0.5F};
+  searchBox = edgesAccumulate(edges_arr, row_size, col_size, radii, iAbs, jAbs, distThreshold,
+                                   iSearchSize, jSearchSize, scaleCoeff);
+
+
+  b = std::max_element(searchBox.begin(), searchBox.end());
+  valMax = *b;
+  idxMax = std::distance(searchBox.begin(), b);
+  radiusFoundIdx = idxMax / (iSearchSize / scaleCoeff * iSearchSize / scaleCoeff);
+  iIdx =
+      (idxMax % (iSearchSize / scaleCoeff * iSearchSize / scaleCoeff)) / (iSearchSize / scaleCoeff);
+  jIdx = idxMax % (iSearchSize / scaleCoeff);
+
+  jAbs = jAbs - jSearchSize / 2 + jIdx * scaleCoeff;
+  iAbs = iAbs - iSearchSize / 2 + iIdx * scaleCoeff;
+
+  std::cout << "MaxVal: " << valMax << "; MaxValIdx: " << idxMax << '\n';
+  std::cout << "Radius: "
+            << radii.at(radiusFoundIdx)
+            << "; iIdx: " << iIdx << "; jIdx: " << jIdx << '\n';
+  // get the actual coordinates
+  std::cout << "xAbs: " << jAbs
+            << "; yAbs: " << iAbs << '\n';
+
+
+
+  std::ofstream myfile2;
+  myfile2.open("example2.txt");
+  std::cout << "Outputting the accumulator (Iteration II)\n\n";
+  for (size_t rIdx = 0; rIdx < radii.size(); rIdx++) {
+    for (auto i = 0; i < iSearchSize/scaleCoeff; i++) {
+      for (auto j = 0; j < jSearchSize/scaleCoeff; j++) {
+        myfile2 << searchBox[(rIdx * (iSearchSize/scaleCoeff * jSearchSize/scaleCoeff) +
+                             i * jSearchSize/scaleCoeff + j)]
+               << ' ';
+      }
+      myfile2 << '\n';
+    }
+  }
+  myfile2.close();
 
   // write out the resultant netcdf after sobel filtering?
 
@@ -456,4 +421,56 @@ void smoothAvg(const std::vector<uint16_t> &arr,
       // int math here might be slow
       smooth_arr[i * row_size + j] = tmp / (filterSide * filterSide);
     }
+}
+
+
+std::vector<uint64_t> edgesAccumulate(std::vector<float>& edges_arr, size_t row_size,
+                                      size_t col_size, std::vector<float>& radii, long long iCentreApprox,
+                                      long long jCentreApprox, float distThreshold, long long iSearchSize,
+                                      long long jSearchSize, long long scaleCoeff) {
+    std::cout << "Radii assessed:\n";
+    for(auto& rad:radii){
+      std::cout << rad <<' ';
+    }
+    std::cout << '\n';
+
+    std::vector<uint64_t> searchBox(iSearchSize/scaleCoeff * jSearchSize/scaleCoeff *radii.size(), 0);
+
+    float halfDiagLen = std::sqrt(static_cast<float>(iSearchSize * iSearchSize +
+                                                   jSearchSize * jSearchSize)); // diagonal length of the searchbox
+
+    for (int i = 0; i < static_cast<int>(row_size); ++i)
+        for (int j = 0; j < static_cast<int>(col_size); ++j) {
+            if (edges_arr[i * row_size + j] != 0) {
+                // check if the edge is not within 0.5 (0.7?) std from the avg centre
+                float distanceToAvgCentre = std::sqrt(std::pow(static_cast<float>(i - iCentreApprox), 2.0F) +
+                                                      std::pow(static_cast<float>(j - jCentreApprox), 2.0F));
+                if (distanceToAvgCentre < distThreshold) // too close, skipping
+                    continue;
+                for (size_t rIdx = 0; rIdx < radii.size(); rIdx++) {
+                    if ((distanceToAvgCentre - halfDiagLen) <= radii[rIdx] &&
+                        (distanceToAvgCentre + halfDiagLen) >= radii[rIdx]) {
+                        // the edge could theoretically be part of the circle
+                        // with the centre in the search box so we can continue
+                        for (auto iCentre = 0; iCentre < iSearchSize / scaleCoeff; ++iCentre)
+                            for (auto jCentre = 0; jCentre < jSearchSize / scaleCoeff; ++jCentre) {
+
+                                long long indexI = iCentreApprox - iSearchSize/2 + iCentre*scaleCoeff + scaleCoeff/2;
+                                long long indexJ = jCentreApprox - jSearchSize/2 + jCentre*scaleCoeff + scaleCoeff/2;
+
+                                auto distance = (
+                                    std::sqrt(std::pow(static_cast<float>(i - indexI), 2.0F) +
+                                              std::pow(static_cast<float>(j - indexJ), 2.0F)));
+
+                                if (distance >= (radii[rIdx] - static_cast<float>(scaleCoeff)/2.0F) &&
+                                    distance <= (radii[rIdx] + static_cast<float>(scaleCoeff)/2.0F)) {
+                                    searchBox.at(rIdx * (iSearchSize/scaleCoeff * jSearchSize/scaleCoeff) +
+                                                 iCentre * iSearchSize/scaleCoeff + jCentre) += 1;
+                                }
+                            }
+                    }
+                }
+            }
+        }
+    return searchBox;
 }
