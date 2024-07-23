@@ -1,26 +1,30 @@
 //
 // Created by bogdan on 11/06/24.
 //
-#include <algorithm>
-#include <cstddef>
-#include <fstream>
-#include <iostream>
-
-#include <cmath>
-#include <cstdint>
-#include <iterator>
-#include <netcdf>
+#include <ncDim.h>    // for NcDim
+#include <ncFile.h>   // for NcFile
+#include <ncGroup.h>  // for NcGroup
+#include <ncVar.h>    // for NcVar
+#include <algorithm>  // for max_element
+#include <cmath>      // for sqrt, pow
+#include <cstddef>    // for size_t
+#include <cstdint>    // for uint16_t, uint32_t, int32_t, uint64_t, int16_t
+#include <fstream>    // for basic_ofstream
+#include <iostream>   // for basic_ostream, operator<<, cout, ofstream
+#include <iterator>   // for distance
+#include <string>     // for char_traits, basic_string
+#include <tuple>      // for tie, tuple
+#include <vector>     // for vector
 
 #include "netcdf4Read.h"
-#include <tuple>
-#include <vector>
 
+using std::size_t;
 
 int main() {
   /* This will be the netCDF ID for the file and data variable. */
 
   auto filepath =
-      "/home/bogdan/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/"
+      "/home/bogdanm/data/containerSamples/RSES_Wood_PigTeeth_3rdMolars/"
       "tomoSliceZ-2__RMG.nc"; // inner: 1208, outer: 1271(?)
   // std::vector<float> radii{1215, 1216, 1217, 1218, 1219, 1267,
   //                        1268, 1269, 1270, 1271, 1272, 1273};

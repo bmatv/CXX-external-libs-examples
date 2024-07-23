@@ -1,6 +1,10 @@
 #pragma once
-#include <cstdint>
-#include <vector>
+#include <cstddef>  // for size_t
+#include <cstdint>  // for uint32_t, uint16_t, int32_t, uint64_t
+#include <utility>  // for pair
+#include <vector>   // for vector
+
+using std::size_t;
 
 auto filterEdgesGrid(std::vector<float> &edges_arr, uint32_t row_size,
                      uint32_t col_size, uint32_t gridSide = 20,
